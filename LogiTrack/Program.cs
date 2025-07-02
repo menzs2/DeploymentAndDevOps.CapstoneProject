@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<LogiTrackContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("LogiTrackDatabase")));
+    options.UseSqlite("Data Source=logitrack.db"));
 
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();

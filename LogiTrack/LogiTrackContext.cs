@@ -13,7 +13,7 @@ public class LogiTrackContext: DbContext
         if (!optionsBuilder.IsConfigured)
         {
             // Only configure a provider if none has been set (e.g., for production)
-            optionsBuilder.UseSqlite("YourProductionConnectionString");
+            optionsBuilder.UseSqlite("Data Source=logitrack.db");
         }
     }
     public LogiTrackContext(DbContextOptions<LogiTrackContext> options) : base(options)

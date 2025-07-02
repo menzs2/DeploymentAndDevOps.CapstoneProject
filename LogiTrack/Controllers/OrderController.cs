@@ -14,6 +14,14 @@ namespace LogiTrack.Controllers;
 [ProducesResponseType(StatusCodes.Status200OK)]
 public class OrderController : ControllerBase
 {
+    private readonly LogiTrackContext _context;
+
+    public OrderController(LogiTrackContext dbContext)
+    {
+        _context = dbContext;
+    }
+
+
     /// <summary>
     /// Gets a list of orders.
     /// </summary>

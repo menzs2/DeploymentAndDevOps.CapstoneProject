@@ -13,6 +13,13 @@ namespace LogiTrack.Controllers;
 [ProducesResponseType(StatusCodes.Status200OK)]
 public class InventoryController : ControllerBase
 {
+    private readonly LogiTrackContext _context;
+
+    public InventoryController(LogiTrackContext dbContext)
+    {
+        _context = dbContext;
+    }
+
     /// <summary>
     /// Gets a list of inventory items.
     /// </summary>
@@ -20,8 +27,9 @@ public class InventoryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult GetItems()
     {
-        // Your logic to get inventory items
-        return Ok();
+        var items = _context.InventoryItems.ToList<InventoryItem>();
+
+        return items.Any() ? Ok(items) : NotFound();
     }
 
     /// <summary>
@@ -32,8 +40,9 @@ public class InventoryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetItem(int id)
     {
-        // Your logic to get a specific inventory item by ID
-        return Ok();
+
+        var item = _context.InventoryItems.Where(i => i.Id == id);
+        return item != null ? Ok(item) : NotFound($"No item with id '{id} found.");
     }
 
     /// <summary>
@@ -41,26 +50,31 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public IActionResult CreateItem([FromBody] InventoryItem item)
+    public async Task<IActionResult> CreateItem([FromBody] InventoryItem item)
     {
-        // Your logic to create a new inventory item
+        if (item == null)
+        {
+            return BadRequest($"No item provided for creation.");
+        }
+        _context.Add(item);
+        await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetItems), new { id = item.Id }, item);
     }
     /// <summary>
     /// Creates multiple new inventory items in a batch.
     /// </summary>
     /// <param name="items">An array of inventory items to be created.</param>
-   
+
     [HttpPost("batch")]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public IActionResult CreateItems([FromBody] InventoryItem[] items)
+    public async Task<IActionResult> CreateItems([FromBody] InventoryItem[] items)
     {
         if (items == null || items.Length == 0)
         {
             return BadRequest("No items provided for creation.");
         }
-        // Your logic to create new inventory items
-        // Returning Ok with the created items, as CreatedAtAction is typically for single resources
+        _context.InventoryItems.AddRange(items);
+        await _context.SaveChangesAsync();
         return Ok(items);
     }
 
@@ -71,9 +85,21 @@ public class InventoryController : ControllerBase
     /// <param name="item">The updated inventory item data.</param>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult UpdateItem(int id, [FromBody] InventoryItem item)
+    public async Task<IActionResult> UpdateItem(int id, [FromBody] InventoryItem item)
     {
-        // Your logic to update the inventory item
+        if (item == null)
+        {
+            return BadRequest($"No item provided for creation.");
+        }
+        var existing = _context.InventoryItems.First(i => i.Id == id);
+        existing.Name = item.Name;
+        existing.Description = item.Description;
+        existing.Quantity = item.Quantity;
+        existing.Price = item.Price;
+        existing.Location = item.Location;
+        existing.LastUpdated = DateTime.UtcNow;
+        _context.Update(existing);
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 
@@ -83,9 +109,15 @@ public class InventoryController : ControllerBase
     /// <param name="id">The ID of the inventory item to delete.</param>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult DeleteItem(int id)
+    public async Task<IActionResult> DeleteItem(int id)
     {
-        // Your logic to delete the inventory item
+        var existing = _context.InventoryItems.Where(i => i.Id == id);
+        if (existing == null)
+        {
+            return BadRequest($"No item with id '{id}' found.");
+        }
+        _context.Remove(existing);
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }
