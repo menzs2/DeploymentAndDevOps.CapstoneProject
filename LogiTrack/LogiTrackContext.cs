@@ -8,8 +8,14 @@ public class LogiTrackContext: DbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite("Data Source=logitrack.db");
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            // Only configure a provider if none has been set (e.g., for production)
+            optionsBuilder.UseSqlite("YourProductionConnectionString");
+        }
+    }
     public LogiTrackContext(DbContextOptions<LogiTrackContext> options) : base(options)
     {
     }
