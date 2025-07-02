@@ -1,5 +1,4 @@
 using LogiTrack;
-using LogiTrack.Models;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,15 +8,26 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<LogiTrackContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("LogiTrackDatabase")));
+
+// Add Swagger services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    // Enable Swagger UI in development
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
 app.Run();
 // using (var context = new LogiTrackContext())
 // {
