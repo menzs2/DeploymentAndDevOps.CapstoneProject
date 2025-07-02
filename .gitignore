@@ -52,3 +52,23 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# EF Core Migrations
+**/Migrations/
+**/migrations/
+
+# Build outputs
+bin/
+obj/
+
+# User-specific files
+*.user
+*.vspscc
+*.vssscc
+
+# VS Code settings
+.vscode/
+
+# Ignore SQLite database
+*.db
+LogiTrack/logitrack.db
