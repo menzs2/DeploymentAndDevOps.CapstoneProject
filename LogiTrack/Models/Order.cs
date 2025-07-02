@@ -9,6 +9,7 @@ public class Order
     public string CustomerName { get; set; } = string.Empty;
     public DateTime DatePlaced { get; set; } = DateTime.UtcNow;
     public string Status { get; set; } = "Pending";
+    public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
     // Navigation property for many-to-many relationship
     public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

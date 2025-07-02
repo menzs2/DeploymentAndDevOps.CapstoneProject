@@ -30,8 +30,8 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult GetOrders()
     {
-        // Your logic to get orders
-        return Ok();
+        var orders = _context.InventoryItems.ToList<InventoryItem>();
+        return orders.Any() ? Ok(orders) : NotFound();
     }
 
     /// <summary>
@@ -44,8 +44,9 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetOrder(int id)
     {
-        // Your logic to get a specific order by ID
-        return Ok();
+
+        var order = _context.InventoryItems.Where(i => i.Id == id);
+        return order != null ? Ok(order) : NotFound($"No item with id '{id} found.");
     }
 
     /// <summary>
@@ -55,9 +56,14 @@ public class OrderController : ControllerBase
     /// <returns>An IActionResult indicating the result of the creation operation.</returns>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public IActionResult CreateOrder([FromBody] Order order)
+    public async Task<IActionResult> CreateOrder([FromBody] Order order)
     {
-        // Your logic to create a new order
+        if (order == null)
+        {
+            return BadRequest("No order provided for creation.");
+        }
+        _context.Add(order);
+        await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
     }
 
@@ -68,15 +74,14 @@ public class OrderController : ControllerBase
     /// <returns>An IActionResult indicating the result of the creation operation.</returns>
     [HttpPost("batch")]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    public IActionResult CreateOrders([FromBody] Order[] orders)
+    public async Task<IActionResult> CreateOrders([FromBody] Order[] orders)
     {
         if (orders == null || orders.Length == 0)
         {
             return BadRequest("No orders provided for creation.");
         }
-
-        // Your logic to create new orders
-        // Returning Ok with the created orders, as CreatedAtAction is typically for single resources
+        _context.AddRange(orders);
+        await _context.SaveChangesAsync();
         return Ok(orders);
     }
 
@@ -87,9 +92,38 @@ public class OrderController : ControllerBase
     /// <param name="order">The updated order data.</param>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult UpdateOrder(int id, [FromBody] Order order)
+    public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order order)
     {
-        // Your logic to update the order
+        var existing = _context.Orders.First(o => o.Id == id);
+        if (existing == null)
+        {
+            return BadRequest($"No order with id '{id}' found");
+        }
+        existing.CustomerName = order.CustomerName;
+        existing.Status = order.Status;
+        existing.LastUpdated = DateTime.UtcNow;
+        //Update exisiting and insert new order items.
+        foreach (var orderItem in order.OrderItems)
+        {
+            var existingOrderItem = existing.OrderItems.First(o => o.InventoryItemId == orderItem.InventoryItemId);
+            if (existingOrderItem == null)
+            {
+                existing.AddItem(orderItem.InventoryItem);
+            }
+            else
+            {
+                existingOrderItem.OrderedQuantity = orderItem.OrderedQuantity;
+            }
+        }
+        //Handle remove items
+        var itemsToRemove = new List<OrderItem>();
+        foreach (var orderItem in order.OrderItems)
+        {
+            if (existing.OrderItems.Any(o => o.InventoryItemId == orderItem.InventoryItemId)) continue;
+            existing.RemoveItem(orderItem.InventoryItem);
+        }
+        _context.Update(existing);
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 
@@ -99,9 +133,15 @@ public class OrderController : ControllerBase
     /// <param name="id">The ID of the order to delete.</param>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult DeleteOrder(int id)
+    public async Task<IActionResult> DeleteOrder(int id)
     {
-        // Your logic to delete the order
+        var existing = _context.Orders.Where(o => o.Id == id);
+        if (existing == null)
+        {
+            return BadRequest($"No order with id '{id}' found");
+        }
+        _context.Remove(existing);
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }
