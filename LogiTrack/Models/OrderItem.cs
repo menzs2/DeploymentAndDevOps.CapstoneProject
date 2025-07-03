@@ -17,4 +17,5 @@ public class OrderItem
     [ForeignKey("InventoryItem")]
     public int InventoryItemId { get; set; }
     public InventoryItem InventoryItem { get; set; } = null!;
+
 }

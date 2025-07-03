@@ -15,7 +15,7 @@ namespace LogiTrack.Controllers;
 public class OrderController : ControllerBase
 {
     private readonly LogiTrackContext _context;
-
+    private readonly OrderService _service;
     public OrderController(LogiTrackContext dbContext)
     {
         _context = dbContext;

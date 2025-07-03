@@ -26,6 +26,19 @@ public class Order
             OrderItems.Remove(orderItem);
     }
 
+    public void UpdateOrderedQuantity(int itemId, int quantity)
+    {
+        var orderItem = OrderItems.First(o => o.InventoryItemId == itemId);
+        if (orderItem != null)
+        {
+            if (orderItem.InventoryItem.Quantity - quantity > 0)
+            {
+                orderItem.OrderedQuantity += quantity;
+            }
+            else throw new Exception("Not enough items in stock.");
+        }
+    }
+
     public decimal GetTotalPrice()
     {
         return OrderItems.Sum(oi => oi.InventoryItem?.Price ?? 0);
