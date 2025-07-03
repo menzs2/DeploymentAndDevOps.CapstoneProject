@@ -29,7 +29,7 @@ public class OrderService
         
     }
 
-    public async Task<(bool result, string[] message)> InsertOder(List<Order> orders)
+    public async Task<(bool result, string[] message)> InsertOrder(List<Order> orders)
     {
         var messages = new List<string>();
         foreach (var order in orders)

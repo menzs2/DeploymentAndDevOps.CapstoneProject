@@ -16,9 +16,10 @@ public class OrderController : ControllerBase
 {
     private readonly LogiTrackContext _context;
     private readonly OrderService _service;
-    public OrderController(LogiTrackContext dbContext)
+    public OrderController(LogiTrackContext context,  OrderService orderService)
     {
-        _context = dbContext;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _service = orderService ?? throw new ArgumentNullException(nameof(orderService));
     }
 
 
@@ -30,7 +31,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult GetOrders()
     {
-        var orders = _context.InventoryItems.ToList<InventoryItem>();
+        var orders = _service.GetOrders();
         return orders.Any() ? Ok(orders) : NotFound();
     }
 
@@ -45,8 +46,8 @@ public class OrderController : ControllerBase
     public IActionResult GetOrder(int id)
     {
 
-        var order = _context.InventoryItems.Where(i => i.Id == id);
-        return order != null ? Ok(order) : NotFound($"No item with id '{id} found.");
+        var order = _service.GetOrders().FirstOrDefault(i => i.Id == id);
+        return order != null ? Ok(order) : NotFound($"No order with id '{id} found.");
     }
 
     /// <summary>
@@ -62,8 +63,11 @@ public class OrderController : ControllerBase
         {
             return BadRequest("No order provided for creation.");
         }
-        _context.Add(order);
-        await _context.SaveChangesAsync();
+        var result = await _service.InsertOrder(order);
+        if (!result.result)
+        {
+            return BadRequest(result.message);
+        }
         return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
     }
 
@@ -80,8 +84,11 @@ public class OrderController : ControllerBase
         {
             return BadRequest("No orders provided for creation.");
         }
-        _context.AddRange(orders);
-        await _context.SaveChangesAsync();
+        var result = await _service.InsertOrder(orders.ToList());
+        if (!result.result)
+        {
+            return BadRequest(result.message);
+        }
         return Ok(orders);
     }
 

@@ -9,6 +9,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<LogiTrackContext>(options =>
     options.UseSqlite("Data Source=logitrack.db"));
 
+builder.Services.AddSingleton<OrderService>();
+
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
