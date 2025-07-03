@@ -14,11 +14,9 @@ namespace LogiTrack.Controllers;
 [ProducesResponseType(StatusCodes.Status200OK)]
 public class OrderController : ControllerBase
 {
-    private readonly LogiTrackContext _context;
     private readonly OrderService _service;
     public OrderController(LogiTrackContext context,  OrderService orderService)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
         _service = orderService ?? throw new ArgumentNullException(nameof(orderService));
     }
 
@@ -101,37 +99,17 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order order)
     {
-        var existing = _context.Orders.First(o => o.Id == id);
-        if (existing == null)
+        if (order == null )
         {
-            return BadRequest($"No order with id '{id}' found");
+            return BadRequest("No order provided for creation.");
         }
-        existing.CustomerName = order.CustomerName;
-        existing.Status = order.Status;
-        existing.LastUpdated = DateTime.UtcNow;
-        //Update exisiting and insert new order items.
-        foreach (var orderItem in order.OrderItems)
+        var result = await _service.UpdateOrder(order);
+        if (!result.result)
         {
-            var existingOrderItem = existing.OrderItems.First(o => o.InventoryItemId == orderItem.InventoryItemId);
-            if (existingOrderItem == null)
-            {
-                existing.AddItem(orderItem.InventoryItem);
-            }
-            else
-            {
-                existingOrderItem.OrderedQuantity = orderItem.OrderedQuantity;
-            }
+            return BadRequest(result.message);
         }
-        //Handle remove items
-        var itemsToRemove = new List<OrderItem>();
-        foreach (var orderItem in order.OrderItems)
-        {
-            if (existing.OrderItems.Any(o => o.InventoryItemId == orderItem.InventoryItemId)) continue;
-            existing.RemoveItem(orderItem.InventoryItem);
-        }
-        _context.Update(existing);
-        await _context.SaveChangesAsync();
-        return NoContent();
+        return Ok(order);
+        
     }
 
     /// <summary>
@@ -142,13 +120,8 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteOrder(int id)
     {
-        var existing = _context.Orders.Where(o => o.Id == id);
-        if (existing == null)
-        {
-            return BadRequest($"No order with id '{id}' found");
-        }
-        _context.Remove(existing);
-        await _context.SaveChangesAsync();
+        
+        await _service.RemoveOrder(id);
         return NoContent();
     }
 }
