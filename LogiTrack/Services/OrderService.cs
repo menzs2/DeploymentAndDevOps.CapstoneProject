@@ -19,10 +19,10 @@ public class OrderService
         if (validation.valid)
         {
             _context.Add(order);
+            UpdateInventory(order.OrderItems);
             await _context.SaveChangesAsync();
         }
         return validation;
-
     }
 
     public async Task<(bool result, string[] message)> InsertOrder(List<Order> orders)
@@ -36,7 +36,6 @@ public class OrderService
                 messages.Add(result.message);
             }
         }
-        await _context.SaveChangesAsync();
         return (messages.Any(), messages.ToArray());
     }
 
@@ -46,7 +45,8 @@ public class OrderService
         var existing = _context.Orders.First(o => o.Id == order.Id);
         if (existing == null)
         {
-            return (false, new string[] { $"No order with id '{order.Id}' found" });
+            messages.Add($"No order with id '{order.Id}' found");
+            return (false, messages.ToArray());
         }
         var validation = ValidateOrder(order, existing);
         if (!validation.valid)
@@ -62,11 +62,11 @@ public class OrderService
             var existingOrderItem = existing.OrderItems.First(o => o.InventoryItemId == orderItem.InventoryItemId);
             if (existingOrderItem == null)
             {
-                existing.AddItem(orderItem.InventoryItem);
+                AddItem(existing, orderItem.InventoryItem, orderItem.OrderedQuantity);
             }
             else
             {
-                existingOrderItem.OrderedQuantity = orderItem.OrderedQuantity;
+                UpdateItem(orderItem, existingOrderItem);
             }
         }
         //Handle remove items
@@ -74,14 +74,15 @@ public class OrderService
         foreach (var orderItem in order.OrderItems)
         {
             if (existing.OrderItems.Any(o => o.InventoryItemId == orderItem.InventoryItemId)) continue;
-            existing.RemoveItem(orderItem.InventoryItem);
+            RemoveItem(existing);
         }
         _context.Update(existing);
         await _context.SaveChangesAsync();
         return (true, messages.ToArray());
     }
 
-    public async Task<(bool result, string message)> RemoveOrder(int id) {
+    public async Task<(bool result, string message)> RemoveOrder(int id)
+    {
 
         var existing = _context.Orders.First(o => o.Id == id);
         if (existing == null)
@@ -117,6 +118,12 @@ public class OrderService
         return orderItem.InventoryItem.Quantity - quantityChanged >= 0;
     }
 
+    private void UpdateInventory(InventoryItem inventoryItem, int quantity)
+    {
+        inventoryItem.Quantity -= quantity;
+        _context.InventoryItems.Update(inventoryItem);
+    }
+
     private void UpdateInventory(List<OrderItem> orderItems)
     {
         foreach (var item in orderItems)
@@ -133,11 +140,19 @@ public class OrderService
         orderItem.InventoryItem.Quantity -= quantity;
     }
 
-    public void AddItem(Order order, InventoryItem item, int quantity)
+    public void AddItem(Order order, OrderItem orderItem)
     {
-        var newOrderItem = new OrderItem { OrderId = order.Id, InventoryItemId = item.Id, InventoryItem = item };
-        UpdateInventory(new List<OrderItem> { newOrderItem });
+        var newOrderItem = new OrderItem { OrderId = order.Id, InventoryItemId = orderItem.Id, InventoryItem = orderItem.InventoryItem, OrderedQuantity = orderItem.OrderedQuantity };
+        UpdateInventory(newOrderItem.InventoryItem, newOrderItem.OrderedQuantity);
         order.OrderItems.Add(newOrderItem);
+    }
+
+    public void UpdateItem(OrderItem orderItem, OrderItem existing)
+    {
+        var quantityChanged = orderItem.OrderedQuantity - existing.OrderedQuantity;
+        existing.OrderedQuantity += quantityChanged;
+        _context.OrderItems.Update(existing);
+        UpdateInventory(orderItem.InventoryItem, quantityChanged);
     }
 
     private void RemoveItem(Order order, InventoryItem item)
@@ -146,7 +161,7 @@ public class OrderService
         if (orderItem != null)
         {
             order.OrderItems.Remove(orderItem);
-            UpdateInventory(new List<OrderItem> { orderItem });
+            UpdateInventory(orderItem.InventoryItem, orderItem.OrderedQuantity*-1);
         }
     }
 }
