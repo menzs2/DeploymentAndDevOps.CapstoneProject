@@ -62,7 +62,7 @@ public class OrderService
             var existingOrderItem = existing.OrderItems.First(o => o.InventoryItemId == orderItem.InventoryItemId);
             if (existingOrderItem == null)
             {
-                AddItem(existing, orderItem.InventoryItem, orderItem.OrderedQuantity);
+                AddItem(existing, orderItem);
             }
             else
             {
@@ -74,7 +74,7 @@ public class OrderService
         foreach (var orderItem in order.OrderItems)
         {
             if (existing.OrderItems.Any(o => o.InventoryItemId == orderItem.InventoryItemId)) continue;
-            RemoveItem(existing);
+            RemoveItem(existing, orderItem.InventoryItem);
         }
         _context.Update(existing);
         await _context.SaveChangesAsync();
