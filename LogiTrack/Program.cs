@@ -13,7 +13,7 @@ builder.Services.AddDbContext<LogiTrackContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 .AddEntityFrameworkStores<LogiTrackContext>();
 // Register the OrderService as a singleton
-builder.Services.AddSingleton<OrderService>();
+builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddScoped<SignInManager<ApplicationUser>>();

@@ -1,4 +1,5 @@
 ﻿using LogiTrack.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LogiTrack.Controllers;
@@ -50,6 +51,7 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateItem([FromBody] InventoryItem item)
     {
         if (item == null)
@@ -67,6 +69,7 @@ public class InventoryController : ControllerBase
 
     [HttpPost("batch")]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateItems([FromBody] InventoryItem[] items)
     {
         if (items == null || items.Length == 0)
@@ -85,6 +88,7 @@ public class InventoryController : ControllerBase
     /// <param name="item">The updated inventory item data.</param>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateItem(int id, [FromBody] InventoryItem item)
     {
         if (item == null)
@@ -109,6 +113,7 @@ public class InventoryController : ControllerBase
     /// <param name="id">The ID of the inventory item to delete.</param>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> DeleteItem(int id)
     {
         var existing = _context.InventoryItems.Where(i => i.Id == id);

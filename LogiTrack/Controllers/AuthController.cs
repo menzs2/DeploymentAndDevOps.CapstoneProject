@@ -12,13 +12,11 @@ namespace LogiTrack;
 [ProducesResponseType(StatusCodes.Status200OK)]
 public class AuthController : ControllerBase
 {
-    private readonly LogiTrackContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public AuthController(LogiTrackContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
-        _context = context;
         _userManager = userManager;
         _signInManager = signInManager;
     }
@@ -42,20 +40,29 @@ public class AuthController : ControllerBase
 
                 // Issue JWT token
                 var user = await _signInManager.UserManager.FindByEmailAsync(request.Email);
+                if (user == null)
+                {
+                    return BadRequest("User not found.");
+                }
+                if (user.LockoutEnabled && user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+                {
+                    return BadRequest("User is locked out.");
+                }
                 var claims = new[]
                 {
                         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                        new Claim(ClaimTypes.Name, user.UserName)
-                    };
+                        new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+                        new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
+                        new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "User") // Default to User role if none assigned
+                };
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSuperSecretKeyHere!123")); // Use a secure key from config
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
                 var token = new JwtSecurityToken(
-                    issuer: "SafeVault",
-                    audience: "SafeVault",
+                    issuer: "LogiTrack",
+                    audience: "LogiTrack",
                     claims: claims,
                     expires: DateTime.Now.AddHours(1),
                     signingCredentials: creds);
