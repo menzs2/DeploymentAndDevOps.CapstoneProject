@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 namespace LogiTrack;
 
 [ApiController]
@@ -24,35 +27,81 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult Login([FromBody] Microsoft.AspNetCore.Identity.Data.LoginRequest request)
+    public async Task<IActionResult> LoginAsync([FromBody] Microsoft.AspNetCore.Identity.Data.LoginRequest request)
     {
         if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
         {
             return BadRequest("Invalid login request.");
         }
 
-        // Here you would typically validate the user credentials against a database
-        // For simplicity, we are returning a dummy response
-        if (request.Email == "admin@example.com" && request.Password == "password")
+        if (ModelState.IsValid)
         {
-            return Ok(new { Token = "dummy-jwt-token" });
-        }
+            var result = await _signInManager.PasswordSignInAsync(request.Email, request.Password, true, lockoutOnFailure: false);
+            if (result.Succeeded)
+            {
 
-        return BadRequest("Invalid username or password.");
+                // Issue JWT token
+                var user = await _signInManager.UserManager.FindByEmailAsync(request.Email);
+                var claims = new[]
+                {
+                        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                        new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                        new Claim(ClaimTypes.Name, user.UserName)
+                    };
+
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSuperSecretKeyHere!123")); // Use a secure key from config
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: "SafeVault",
+                    audience: "SafeVault",
+                    claims: claims,
+                    expires: DateTime.Now.AddHours(1),
+                    signingCredentials: creds);
+
+                var JwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+                // Set the JWT token in a secure cookie
+                // Ensure the cookie is HttpOnly, Secure, and SameSite
+                Response.Cookies.Append(
+                    "JwtToken",
+                    JwtToken,
+                    new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTimeOffset.UtcNow.AddHours(1)
+                    });
+                return Ok(new { Token = JwtToken, Message = "Login successful." });
+            }
+
+            return BadRequest("Invalid username or password.");
+        }
+        return BadRequest(ModelState);
     }
 
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public IActionResult Register([FromBody] Microsoft.AspNetCore.Identity.Data.RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] Microsoft.AspNetCore.Identity.Data.RegisterRequest request)
     {
         if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
         {
             return BadRequest("Invalid registration request.");
         }
+        ApplicationUser user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email
+        };
+        var result = await _userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
 
-        // Here you would typically save the user to a database
-        // For simplicity, we are returning a dummy response
         return CreatedAtAction(nameof(Register), new { Email = request.Email }, new { Message = "User registered successfully." });
     }
 }
