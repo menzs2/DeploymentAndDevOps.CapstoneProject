@@ -1,4 +1,5 @@
 using LogiTrack;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<LogiTrackContext>(options =>
     options.UseSqlite("Data Source=logitrack.db"));
-
+// Configure Identity with default options
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+.AddEntityFrameworkStores<LogiTrackContext>();
+// Register the OrderService as a singleton
 builder.Services.AddSingleton<OrderService>();
 
 // Add Swagger services

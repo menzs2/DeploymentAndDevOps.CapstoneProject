@@ -1,6 +1,8 @@
-﻿namespace LogiTrack;
+﻿using Microsoft.AspNetCore.Identity;
 
-public class ApplicationUser
+namespace LogiTrack;
+
+public class ApplicationUser : IdentityUser
 {
 
 }
