@@ -15,6 +15,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 // Register the OrderService as a singleton
 builder.Services.AddSingleton<OrderService>();
 
+builder.Services.AddScoped<UserManager<ApplicationUser>>();
+builder.Services.AddScoped<SignInManager<ApplicationUser>>();
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
