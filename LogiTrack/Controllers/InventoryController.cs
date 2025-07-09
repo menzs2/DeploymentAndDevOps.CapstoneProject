@@ -1,6 +1,7 @@
 ﻿using LogiTrack.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 namespace LogiTrack.Controllers;
 
@@ -35,7 +36,7 @@ public class InventoryController : ControllerBase
         {
             return Ok(cachedItems);
         }
-        var items = _context.InventoryItems.ToList<InventoryItem>();
+        var items = _context.InventoryItems.AsNoTracking().ToList();
         // If not cached, store the items in cache
         _inMemoryStoreCache.Set("inventoryItems", items, TimeSpan.FromMinutes(5));
         return items.Any() ? Ok(items) : NotFound();

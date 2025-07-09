@@ -1,17 +1,30 @@
 ﻿using LogiTrack.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore.InMemory.Storage.Internal;
 
 namespace LogiTrack;
 
 public class OrderService
 {
     private readonly LogiTrackContext _context;
+    private readonly IMemoryCache _inMemoryStoreCache;
 
-    public OrderService(LogiTrackContext context)
+    public OrderService(LogiTrackContext context, IMemoryCache inMemoryStoreCache)
     {
         _context = context;
+        _inMemoryStoreCache = inMemoryStoreCache;
     }
 
-    public List<Order> GetOrders() => _context.Orders.ToList();
+    public List<Order> GetOrders() {
+        if (_inMemoryStoreCache.TryGetValue("orders", out List<Order>? cachedOrders))
+        {
+            return cachedOrders ?? new List<Order>();
+        }
+        var orders = _context.Orders.AsNoTracking().ToList();
+        _inMemoryStoreCache.Set("orders", orders, TimeSpan.FromMinutes(5));
+        return orders;
+    }
 
     public async Task<(bool result, string message)> InsertOrder(Order order)
     {
