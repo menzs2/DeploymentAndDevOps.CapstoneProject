@@ -8,6 +8,7 @@ public class LogiTrackContext: DbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<InventoryItem> InventoryItems { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<ApplicationUser> Users { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
