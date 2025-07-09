@@ -75,3 +75,5 @@ LogiTrack/logitrack.db
 
 # Ignore Visual Studio user-specific and workspace files
 .vs/
+
+**appsettings.Development.json

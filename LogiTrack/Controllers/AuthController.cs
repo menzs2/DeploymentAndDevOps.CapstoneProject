@@ -44,10 +44,6 @@ public class AuthController : ControllerBase
                 {
                     return BadRequest("User not found.");
                 }
-                if (user.LockoutEnabled && user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
-                {
-                    return BadRequest("User is locked out.");
-                }
                 var claims = new[]
                 {
                         new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
