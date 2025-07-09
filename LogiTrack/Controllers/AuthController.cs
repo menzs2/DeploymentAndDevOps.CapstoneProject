@@ -8,8 +8,6 @@ namespace LogiTrack;
 [ProducesResponseType(StatusCodes.Status200OK)]
 public class AuthController : ControllerBase
 {
-
-
     private readonly AuthService _authService;
 
     public AuthController(AuthService authService)
@@ -33,15 +31,12 @@ public class AuthController : ControllerBase
             var result = await _authService.LoginAsync(request.Email, request.Password);
             if (result.Succeeded)
             {
-
                 // Issue JWT token
                 var user = await _authService.GetUserByEmailAsync(request.Email);
                 if (user == null)
                 {
                     return BadRequest("User not found.");
                 }
-                
-
                 var JwtToken = await _authService.GenerateJwtTokenAsync(user);
 
                 // Set the JWT token in a secure cookie
@@ -78,7 +73,7 @@ public class AuthController : ControllerBase
             UserName = request.Email,
             Email = request.Email,
         };
-        var result = await _authService.RegisterUserAsync(user, request.Password);
+        var result = await _authService.RegisterUserAsync(user, request.Password, request.Role);
 
         if (!result.Succeeded)
         {

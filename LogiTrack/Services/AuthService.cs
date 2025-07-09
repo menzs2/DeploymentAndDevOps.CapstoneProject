@@ -24,7 +24,7 @@ public class AuthService
         _configuration = configuration;
     }
     
-    public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password)
+    public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password, string? role = null)
     {
         if (user == null || string.IsNullOrEmpty(password))
         {
@@ -35,6 +35,16 @@ public class AuthService
         if (result.Succeeded)
         {
             // Optionally assign a default role
+            if (!string.IsNullOrEmpty(role))
+            {
+                if (!await _roleManager.RoleExistsAsync(role))
+                {
+                    //return an error if the role does not exist
+                    throw new ArgumentException($"Role '{role}' does not exist.");
+                }
+                await _userManager.AddToRoleAsync(user, role);
+                return result;
+            }
             if (!await _roleManager.RoleExistsAsync("User"))
             {
                 await _roleManager.CreateAsync(new IdentityRole("User"));
