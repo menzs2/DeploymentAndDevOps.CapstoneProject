@@ -77,3 +77,5 @@ LogiTrack/logitrack.db
 .vs/
 
 LogiTrack/appsettings.Development.json
+LogiTrack/logitrack.db-shm
+LogiTrack/logitrack.db-wal
