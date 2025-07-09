@@ -16,7 +16,6 @@ builder.Services.AddDbContext<LogiTrackContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 .AddEntityFrameworkStores<LogiTrackContext>();
 
-
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -33,13 +32,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();   
-// Register the OrderService as a singleton
+builder.Services.AddAuthorization();
+
+// Register the OrderService as a scoped service
 builder.Services.AddScoped<OrderService>();
 
+// Register the AuthService as a scoped service
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddScoped<SignInManager<ApplicationUser>>();
 builder.Services.AddScoped<RoleManager<IdentityRole>>();
+
+// Register InMemoryCache
+builder.Services.AddDistributedMemoryCache();
+
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
