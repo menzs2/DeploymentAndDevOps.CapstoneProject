@@ -12,10 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<LogiTrackContext>(options =>
     options.UseSqlite("Data Source=logitrack.db"));
+
 // Configure Identity with default options
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 .AddEntityFrameworkStores<LogiTrackContext>();
 
+// Configure jwt authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -37,14 +39,15 @@ builder.Services.AddAuthorization();
 // Register the OrderService as a scoped service
 builder.Services.AddScoped<OrderService>();
 
-// Register the AuthService as a scoped service
+// Register the AuthService as a scoped service and include UserManager, SignInManager, and RoleManager
+// to handle user authentication and authorization
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddScoped<SignInManager<ApplicationUser>>();
 builder.Services.AddScoped<RoleManager<IdentityRole>>();
 
 // Register InMemoryCache
-builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMemoryCache();
 
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();

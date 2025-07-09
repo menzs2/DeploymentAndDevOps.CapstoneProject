@@ -1,7 +1,7 @@
 ﻿using LogiTrack.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.Extensions.Caching.Memory;
 namespace LogiTrack.Controllers;
 
 /// <summary>
@@ -15,10 +15,12 @@ namespace LogiTrack.Controllers;
 public class InventoryController : ControllerBase
 {
     private readonly LogiTrackContext _context;
+    private readonly IMemoryCache _inMemoryStoreCache;
 
-    public InventoryController(LogiTrackContext dbContext)
+    public InventoryController(LogiTrackContext dbContext, IMemoryCache inMemoryStoreCache)
     {
         _context = dbContext;
+        _inMemoryStoreCache = inMemoryStoreCache;
     }
 
     /// <summary>
@@ -28,8 +30,14 @@ public class InventoryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult GetItems()
     {
+        // Check if the items are cached
+        if (_inMemoryStoreCache.TryGetValue("inventoryItems", out List<InventoryItem>? cachedItems))
+        {
+            return Ok(cachedItems);
+        }
         var items = _context.InventoryItems.ToList<InventoryItem>();
-
+        // If not cached, store the items in cache
+        _inMemoryStoreCache.Set("inventoryItems", items, TimeSpan.FromMinutes(5));
         return items.Any() ? Ok(items) : NotFound();
     }
 
@@ -41,8 +49,11 @@ public class InventoryController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetItem(int id)
     {
-
-        var item = _context.InventoryItems.Where(i => i.Id == id);
+        if (_inMemoryStoreCache.TryGetValue($"inventoryItem_{id}", out InventoryItem? cachedItem))
+        {
+            return Ok(cachedItem);
+        }
+        var item = _context.InventoryItems.Where(i => i.Id == id).FirstOrDefault();
         return item != null ? Ok(item) : NotFound($"No item with id '{id} found.");
     }
 
