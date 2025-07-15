@@ -52,14 +52,15 @@ public class SeedDatabaseContent
 
         if (!_context.Orders.Any())
         {
+
             _service.InsertOrder(new Order
             {
                 CustomerName = "John Doe",
                 DatePlaced = DateTime.UtcNow,
                 OrderItems = new List<OrderItem>
                 {
-                    new OrderItem { InventoryItemId = 1, OrderedQuantity = 2 },
-                    new OrderItem { InventoryItemId = 2, OrderedQuantity = 1 }
+                    new OrderItem { InventoryItemId = 1, OrderedQuantity = 2, InventoryItem = _context.InventoryItems.FirstOrDefault(ii => ii.Id == 1) },
+                    new OrderItem { InventoryItemId = 2, OrderedQuantity = 1, InventoryItem = _context.InventoryItems.FirstOrDefault(ii => ii.Id == 2) }
                 }
             }).Wait();
             _service.InsertOrder(new Order
@@ -68,8 +69,8 @@ public class SeedDatabaseContent
                 DatePlaced = DateTime.UtcNow,
                 OrderItems = new List<OrderItem>
                 {
-                    new OrderItem { InventoryItemId = 3, OrderedQuantity = 5 },
-                    new OrderItem { InventoryItemId = 4, OrderedQuantity = 3 }
+                    new OrderItem { InventoryItemId = 3, OrderedQuantity = 5, InventoryItem = _context.InventoryItems.FirstOrDefault(ii => ii.Id == 3) },
+                    new OrderItem { InventoryItemId = 4, OrderedQuantity = 3, InventoryItem = _context.InventoryItems.FirstOrDefault(ii => ii.Id == 4) }
                 }
             }).Wait();
         }

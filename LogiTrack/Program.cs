@@ -45,7 +45,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddScoped<SignInManager<ApplicationUser>>();
 builder.Services.AddScoped<RoleManager<IdentityRole>>();
-
+//builder.Services.AddScoped<SeedDatabaseContent>();
 // Register InMemoryCache
 builder.Services.AddMemoryCache();
 
@@ -67,53 +67,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
-app.Run();
-// using (var context = new LogiTrackContext())
+// Seed the database with initial data
+
+// using (var scope = app.Services.CreateScope())
 // {
-//     context.Database.EnsureCreated();
-//     context.InventoryItems.ExecuteDelete(); // Clear existing items for testing
-//     context.Orders.ExecuteDelete(); // Clear existing orders for testing
-//                                     // Add test inventory item if none exist
-
-//     context.InventoryItems.Add(new InventoryItem
-//     {
-//         Name = "Pallet Jack",
-//         Quantity = 12,
-//         Location = "Warehouse A"
-//     });
-//     context.InventoryItems.Add(new InventoryItem
-//     {
-//         Name = "Forklift",
-//         Quantity = 5,
-//         Location = "Warehouse B"
-//     });
-//     context.InventoryItems.Add(new InventoryItem
-//     {
-//         Name = "Hand Truck",
-//         Quantity = 20,
-//         Location = "Warehouse C"
-//     });
-//     context.SaveChanges();
-
-//     var order = context.Orders.Add(new Order
-//     {
-//         CustomerName = "John Doe",
-//         DatePlaced = DateTime.UtcNow,
-//         Status = "Pending",
-//         OrderItems = new List<OrderItem>()
-//     });
-//     order.Entity.AddItem(context.InventoryItems.First());
-//     context.SaveChanges();
-
-
-//     // Retrieve and print inventory to confirm
-//     var items = context.InventoryItems.ToList();
-
-
-//     foreach (var item in items)
-//     {
-//         Console.WriteLine(item.DisplayInfo()); // Should print: Item: Pallet Jack | Quantity: 12 | Location: Warehouse A
-//     }
-//     Console.WriteLine("Order Summary:");
-//     Console.WriteLine(context.Orders.FirstOrDefault()?.GetOrderSummary() ?? "No orders found.");
+//     var services = scope.ServiceProvider;
+//     var seedService = services.GetRequiredService<SeedDatabaseContent>();
+//     seedService.Seed();
 // }
+app.Run();
