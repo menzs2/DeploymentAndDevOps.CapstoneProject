@@ -23,28 +23,40 @@ public class AuthService
         _roleManager = roleManager;
         _configuration = configuration;
     }
-    
+
     public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password, string? role = null)
     {
-        if (user == null || string.IsNullOrEmpty(password))
+        if (user == null || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(user.Email))
         {
             throw new ArgumentException("User and password must be provided.");
         }
-
-        var result = await _userManager.CreateAsync(user, password);
+        if (await _userManager.FindByEmailAsync(user.Email) != null)
+        {
+            throw new InvalidOperationException("User with this email already exists.");
+        }
+        //hash the password and create the user
+        user.UserName = user.Email; // Ensure UserName is set to Email for consistency
+        user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, password);
+        
+        var result = await _userManager.CreateAsync(user);
         if (result.Succeeded)
         {
             // Optionally assign a default role
-            if (!string.IsNullOrEmpty(role))
+            if (string.IsNullOrEmpty(role))
+            {
+                role = "User"; // Default to User role if none specified
+            }
+            if (await _roleManager.RoleExistsAsync(role))
             {
                 if (!await _roleManager.RoleExistsAsync(role))
                 {
                     //return an error if the role does not exist
-                    throw new ArgumentException($"Role '{role}' does not exist.");
+                    role = "Guest"; // Default to Guest if role does not exist);
                 }
                 await _userManager.AddToRoleAsync(user, role);
                 return result;
             }
+            // If no role is specified, assign a default role
             if (!await _roleManager.RoleExistsAsync("User"))
             {
                 await _roleManager.CreateAsync(new IdentityRole("User"));
@@ -55,7 +67,7 @@ public class AuthService
         return result;
     }
 
-    public async Task<Microsoft.AspNetCore.Identity.SignInResult> LoginAsync(string email, string password)
+    public async Task<SignInResult> LoginAsync(string email, string password)
     {
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
@@ -98,6 +110,14 @@ public class AuthService
 
     internal async Task<ApplicationUser?> GetUserByEmailAsync(string email)
     {
-        return await _userManager.FindByEmailAsync(email); 
+        return await _userManager.FindByEmailAsync(email);
+    }
+    
+    internal async Task InsertRole(string roleName)
+    {
+        if (!await _roleManager.RoleExistsAsync(roleName))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(roleName));
+        }
     }
 }

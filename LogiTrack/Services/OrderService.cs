@@ -16,7 +16,8 @@ public class OrderService
         _inMemoryStoreCache = inMemoryStoreCache;
     }
 
-    public List<Order> GetOrders() {
+    public List<Order> GetOrders()
+    {
         if (_inMemoryStoreCache.TryGetValue("orders", out List<Order>? cachedOrders))
         {
             return cachedOrders ?? new List<Order>();
@@ -115,20 +116,36 @@ public class OrderService
         {
             return (false, message: $"Order '{order.Id}' alread exists");
         }
-        foreach (var orderItem in order.OrderItems)
+        if (order.OrderItems.Count == 0)
         {
-
-            if (ValidateOrderItem(orderItem, orderItem.OrderedQuantity))
-            {
-                return (false, message: $"Only '{orderItem.InventoryItem.Quantity}' of {orderItem.InventoryItem.Name} left in stock");
-            }
+            return (false, "Order must have at least one order item");
+        }
+        var itemsValid = ValidateOrderItems(order.OrderItems);
+        if (!itemsValid.valid)
+        {
+            return (false, itemsValid.message);
         }
         return (true, string.Empty);
     }
 
-    private bool ValidateOrderItem(OrderItem orderItem, int quantityChanged)
+    private (bool valid, string message) ValidateOrderItems(List<OrderItem> orderItems)
     {
-        return orderItem.InventoryItem.Quantity - quantityChanged >= 0;
+        foreach (var orderItem in orderItems)
+        {
+            if (orderItem.InventoryItem == null && orderItem.InventoryItemId > 0)
+            {
+                orderItem.InventoryItem = _context.InventoryItems.FirstOrDefault(ii => ii.Id == orderItem.InventoryItemId);
+            }
+            if (orderItem.InventoryItem == null)
+            {
+                return (false, $"Inventory item with id '{orderItem.InventoryItemId}' does not exist");
+            }
+            if (orderItem.InventoryItem.Quantity - orderItem.OrderedQuantity < 0)
+            {
+                return (false, $"Only '{orderItem.InventoryItem.Quantity}' of {orderItem.InventoryItem.Name} left in stock");
+            }
+        }
+        return (true, string.Empty);
     }
 
     private void UpdateInventory(InventoryItem inventoryItem, int quantity)
@@ -174,7 +191,7 @@ public class OrderService
         if (orderItem != null)
         {
             order.OrderItems.Remove(orderItem);
-            UpdateInventory(orderItem.InventoryItem, orderItem.OrderedQuantity*-1);
+            UpdateInventory(orderItem.InventoryItem, orderItem.OrderedQuantity * -1);
         }
     }
 }
