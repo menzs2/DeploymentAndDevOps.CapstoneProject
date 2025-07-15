@@ -40,6 +40,7 @@ public class DbTest
                 Quantity = 20,
                 Location = "Warehouse C"
             });
+
             context.SaveChanges();
         }
 
@@ -49,6 +50,7 @@ public class DbTest
             Assert.True(context.InventoryItems.Any(i => i.Name == "Pallet Jack" && i.Quantity == 12 && i.Location == "Warehouse A"));
             Assert.True(context.InventoryItems.Any(i => i.Name == "Forklift" && i.Quantity == 5 && i.Location == "Warehouse B"));
             Assert.True(context.InventoryItems.Any(i => i.Name == "Hand Truck" && i.Quantity == 20 && i.Location == "Warehouse C"));
+            Assert.False(context.InventoryItems.Any(i => i.Name == "Dolly" && i.Quantity == 15 && i.Location == "Warehouse D"));
         }
     }
 
