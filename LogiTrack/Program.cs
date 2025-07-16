@@ -19,6 +19,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 // Configure jwt authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -41,6 +42,7 @@ builder.Services.AddScoped<OrderService>();
 
 // Register the AuthService as a scoped service and include UserManager, SignInManager, and RoleManager
 // to handle user authentication and authorization
+builder.Services.AddScoped(provider => provider.GetRequiredService<IConfiguration>().GetSection("JwtSettings"));
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddScoped<SignInManager<ApplicationUser>>();

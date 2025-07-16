@@ -36,7 +36,7 @@ public class InventoryController : ControllerBase
         {
             return Ok(cachedItems);
         }
-        var items = _context.InventoryItems.AsNoTracking().ToList();
+        var items = _context.InventoryItems.ToList();
         // If not cached, store the items in cache
         _inMemoryStoreCache.Set("inventoryItems", items, TimeSpan.FromMinutes(5));
         return items.Any() ? Ok(items) : NotFound();
@@ -63,9 +63,11 @@ public class InventoryController : ControllerBase
     /// </summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    [Authorize(Roles = "Admin,Manager")]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    //[Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateItem([FromBody] InventoryItem item)
     {
+
         if (item == null)
         {
             return BadRequest($"No item provided for creation.");
@@ -74,16 +76,20 @@ public class InventoryController : ControllerBase
         await _context.SaveChangesAsync();
         return CreatedAtAction(nameof(GetItems), new { id = item.Id }, item);
     }
+
     /// <summary>
     /// Creates multiple new inventory items in a batch.
     /// </summary>
     /// <param name="items">An array of inventory items to be created.</param>
-
     [HttpPost("batch")]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> CreateItems([FromBody] InventoryItem[] items)
     {
+        //validate authentication and authorization
+        if (User.Identity == null || !User.Identity.IsAuthenticated || !User.IsInRole("Admin") && !User.IsInRole("Manager"))
+        {
+            return Forbid();
+        }
         if (items == null || items.Length == 0)
         {
             return BadRequest("No items provided for creation.");
@@ -100,7 +106,7 @@ public class InventoryController : ControllerBase
     /// <param name="item">The updated inventory item data.</param>
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [Authorize(Roles = "Admin,Manager")]
+    //[Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> UpdateItem(int id, [FromBody] InventoryItem item)
     {
         if (item == null)

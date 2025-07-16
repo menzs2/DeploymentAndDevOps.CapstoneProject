@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace LogiTrack;
 
@@ -11,17 +12,17 @@ public class AuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IConfiguration _configuration;
+    private readonly IConfigurationSection _configuration;
 
     public AuthService(UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
-            IConfiguration configuration)
+            IConfigurationSection configuration)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _roleManager = roleManager;
-        _configuration = configuration;
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+        _signInManager = signInManager ?? throw new ArgumentNullException(nameof(signInManager));
+        _roleManager = roleManager ?? throw new ArgumentNullException(nameof(roleManager));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<IdentityResult> RegisterUserAsync(ApplicationUser user, string password, string? role = null)
@@ -86,6 +87,7 @@ public class AuthService
     // Add methods for login, registration, etc. here
     public async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
+
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -94,13 +96,13 @@ public class AuthService
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
             new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "User") // Default to User role if none assigned
         };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])); // Use a secure key from config
+        var secret = _configuration["Secret"];
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)); // Use a secure key from config
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
+            issuer: _configuration["Issuer"],
+            audience: _configuration["Audience"],
             claims: claims,
             expires: DateTime.Now.AddMinutes(30),
             signingCredentials: creds);
