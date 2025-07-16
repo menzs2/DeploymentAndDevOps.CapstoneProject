@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace LogiTrack;
 
@@ -35,34 +34,22 @@ public class AuthService
         {
             throw new InvalidOperationException("User with this email already exists.");
         }
-        //hash the password and create the user
+        // Set UserName to Email for consistency and create the user
         user.UserName = user.Email; // Ensure UserName is set to Email for consistency
-        user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, password);
         
-        var result = await _userManager.CreateAsync(user);
+        var result = await _userManager.CreateAsync(user, password);
         if (result.Succeeded)
         {
-            // Optionally assign a default role
+            // if no role is specified, default to "User"
             if (string.IsNullOrEmpty(role))
             {
-                role = "User"; // Default to User role if none specified
+                role = "User";
             }
             if (await _roleManager.RoleExistsAsync(role))
             {
-                if (!await _roleManager.RoleExistsAsync(role))
-                {
-                    //return an error if the role does not exist
-                    role = "Guest"; // Default to Guest if role does not exist);
-                }
                 await _userManager.AddToRoleAsync(user, role);
                 return result;
             }
-            // If no role is specified, assign a default role
-            if (!await _roleManager.RoleExistsAsync("User"))
-            {
-                await _roleManager.CreateAsync(new IdentityRole("User"));
-            }
-            await _userManager.AddToRoleAsync(user, "User");
         }
 
         return result;
@@ -87,29 +74,41 @@ public class AuthService
     // Add methods for login, registration, etc. here
     public async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
-
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
             new Claim(ClaimTypes.Role, (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "User") // Default to User role if none assigned
         };
+
+        var issuer = _configuration["Issuer"];
+        var audience = _configuration["Audience"];
         var secret = _configuration["Secret"];
+
+        if (string.IsNullOrEmpty(issuer))
+            throw new InvalidOperationException("JWT Issuer configuration is missing.");
+        if (string.IsNullOrEmpty(audience))
+            throw new InvalidOperationException("JWT Audience configuration is missing.");
+        if (string.IsNullOrEmpty(secret))
+            throw new InvalidOperationException("JWT Secret configuration is missing.");
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)); // Use a secure key from config
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: _configuration["Issuer"],
-            audience: _configuration["Audience"],
+            issuer: issuer,
+            audience: audience,
             claims: claims,
-            expires: DateTime.Now.AddMinutes(30),
+            expires: DateTime.UtcNow.AddMinutes(30),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
+    
+    /// <summary>
+    /// Retrieves an <see cref="ApplicationUser"/> by their email address.
+    /// </summary>
+    /// <param name="email">The email address of the user to retrieve.</param>
+    /// <returns>The <see cref="ApplicationUser"/> if found; otherwise, null.</returns>
     internal async Task<ApplicationUser?> GetUserByEmailAsync(string email)
     {
         return await _userManager.FindByEmailAsync(email);
